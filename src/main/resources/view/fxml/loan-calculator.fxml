@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.bankit.loan.controller.LoanCalculatorController"
+      styleClass="calculator-container"
+      spacing="24">
+
+    <!-- Calculator Header -->
+    <Label text="Loan Calculator"
+           styleClass="section-header"/>
+
+    <!-- Results Display -->
+    <VBox spacing="16">
+        <GridPane styleClass="form-grid" hgap="16" vgap="16">
+            <columnConstraints>
+                <ColumnConstraints minWidth="120"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <!-- Monthly Payment -->
+            <Label text="Monthly Payment:"
+                   styleClass="result-label"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+            <TextField fx:id="monthlyPaymentField"
+                       editable="false"
+                       styleClass="result-field"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="0"/>
+
+            <!-- Total Payment -->
+            <Label text="Total Payment:"
+                   styleClass="result-label"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+            <TextField fx:id="totalPaymentField"
+                       editable="false"
+                       styleClass="result-field"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="1"/>
+        </GridPane>
+
+        <!-- Summary Section -->
+        <VBox spacing="8">
+            <Label text="Summary" styleClass="label"/>
+            <TextArea fx:id="summaryArea"
+                      editable="false"
+                      wrapText="true"
+                      prefRowCount="8"
+                      styleClass="summary-area"/>
+        </VBox>
+
+        <!-- Print Options -->
+        <HBox spacing="8" alignment="CENTER">
+            <Button fx:id="printSummaryBtn"
+                    text="Print Summary"
+                    styleClass="button, secondary-button"
+                    onAction="#handlePrintSummary"
+                    maxWidth="Infinity"
+                    HBox.hgrow="ALWAYS"/>
+
+            <Button fx:id="exportPdfBtn"
+                    text="Export PDF"
+                    styleClass="button, primary-button"
+                    onAction="#handleExportPdf"
+                    maxWidth="Infinity"
+                    HBox.hgrow="ALWAYS"/>
+        </HBox>
+    </VBox>
+
+</VBox>

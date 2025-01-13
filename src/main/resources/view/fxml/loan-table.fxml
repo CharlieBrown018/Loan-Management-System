@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.bankit.loan.controller.LoanTableController"
+      styleClass="table-container"
+      spacing="16">
+
+    <padding>
+        <Insets top="16" right="24" bottom="24" left="24"/>
+    </padding>
+
+    <!-- Search and Actions Bar -->
+    <HBox spacing="16" alignment="CENTER_LEFT">
+        <!-- Search Field -->
+        <HBox spacing="8" HBox.hgrow="ALWAYS" alignment="CENTER_LEFT">
+            <Label text="Search:" styleClass="label"/>
+            <TextField fx:id="searchField"
+                       promptText="Search by customer name or loan ID..."
+                       styleClass="search-field"
+                       HBox.hgrow="ALWAYS"/>
+        </HBox>
+
+        <!-- Action Buttons -->
+        <Button fx:id="exportBtn"
+                text="Export"
+                styleClass="button, secondary-button"
+                onAction="#handleExport"
+                minWidth="100"/>
+
+        <Button fx:id="importBtn"
+                text="Import"
+                styleClass="button, primary-button"
+                onAction="#handleImport"
+                minWidth="100"/>
+    </HBox>
+
+    <!-- Table with Scroll -->
+    <ScrollPane fitToWidth="true"
+                fitToHeight="true"
+                VBox.vgrow="ALWAYS"
+                styleClass="table-scroll-pane">
+        <TableView fx:id="loanTable" VBox.vgrow="ALWAYS">
+            <columns>
+                <TableColumn fx:id="loanIdColumn"
+                             text="Loan ID"
+                             prefWidth="100"/>
+                <TableColumn fx:id="customerIdColumn"
+                             text="Customer ID"
+                             prefWidth="100"/>
+                <TableColumn fx:id="customerNameColumn"
+                             text="Customer Name"
+                             prefWidth="150"/>
+                <TableColumn fx:id="contactColumn"
+                             text="Contact"
+                             prefWidth="120"/>
+                <TableColumn fx:id="emailColumn"
+                             text="Email"
+                             prefWidth="150"/>
+                <TableColumn fx:id="accountTypeColumn"
+                             text="Account Type"
+                             prefWidth="100"/>
+                <TableColumn fx:id="loanAmountColumn"
+                             text="Loan Amount"
+                             prefWidth="120"/>
+                <TableColumn fx:id="interestRateColumn"
+                             text="Interest Rate"
+                             prefWidth="100"/>
+                <TableColumn fx:id="termMonthsColumn"
+                             text="Term (Months)"
+                             prefWidth="100"/>
+                <TableColumn fx:id="monthlyPaymentColumn"
+                             text="Monthly Payment"
+                             prefWidth="120"/>
+                <TableColumn fx:id="totalPaymentColumn"
+                             text="Total Payment"
+                             prefWidth="120"/>
+                <TableColumn fx:id="issueDateColumn"
+                             text="Issue Date"
+                             prefWidth="100"/>
+                <TableColumn fx:id="officerNameColumn"
+                             text="Officer Name"
+                             prefWidth="150"/>
+            </columns>
+
+            <columnResizePolicy>
+                <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+            </columnResizePolicy>
+            <placeholder>
+                <Label text="No loans found"
+                       styleClass="label"/>
+            </placeholder>
+            <VBox.margin>
+                <Insets bottom="0"/>
+            </VBox.margin>
+        </TableView>
+    </ScrollPane>
+
+</VBox>

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.bankit.loan.controller.LoanFormController"
+      styleClass="form-container"
+      spacing="24">
+
+    <!-- Customer Information Section -->
+    <VBox spacing="16">
+        <Label text="Customer Information"
+               styleClass="section-header"/>
+
+        <GridPane styleClass="form-grid" hgap="16" vgap="16">
+            <columnConstraints>
+                <ColumnConstraints minWidth="120" prefWidth="150"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Customer ID:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+            <TextField fx:id="customerIdField"
+                       promptText="Enter customer ID"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="0"/>
+
+            <Label text="Full Name:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+            <TextField fx:id="fullNameField"
+                       promptText="Enter full name"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="1"/>
+
+            <Label text="Contact:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="2"/>
+            <TextField fx:id="contactField"
+                       promptText="Enter contact number (09...)"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="2"/>
+
+            <Label text="Email:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="3"/>
+            <TextField fx:id="emailField"
+                       promptText="Enter email address"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="3"/>
+
+            <Label text="Address:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="4"/>
+            <TextField fx:id="addressField"
+                       promptText="Enter complete address"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="4"/>
+
+            <Label text="Account Type:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="5"/>
+            <ComboBox fx:id="accountTypeCombo"
+                      promptText="Select account type"
+                      maxWidth="Infinity"
+                      GridPane.columnIndex="1"
+                      GridPane.rowIndex="5"/>
+        </GridPane>
+    </VBox>
+
+    <!-- Loan Information Section -->
+    <VBox spacing="16">
+        <Label text="Loan Information"
+               styleClass="section-header"/>
+
+        <GridPane styleClass="form-grid" hgap="16" vgap="16">
+            <columnConstraints>
+                <ColumnConstraints minWidth="120" prefWidth="150"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Loan ID:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+            <HBox spacing="8"
+                  GridPane.columnIndex="1"
+                  GridPane.rowIndex="0">
+                <TextField fx:id="loanIdField"
+                           editable="false"
+                           promptText="Generated ID"
+                           HBox.hgrow="ALWAYS"/>
+                <Button fx:id="generateIdBtn"
+                        text="Generate"
+                        styleClass="button, secondary-button"
+                        onAction="#handleGenerateId"
+                        minWidth="100"/>
+            </HBox>
+
+            <Label text="Loan Amount:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+            <TextField fx:id="loanAmountField"
+                       promptText="Enter loan amount"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="1"/>
+
+            <Label text="Interest Rate (%):"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="2"/>
+            <TextField fx:id="interestRateField"
+                       promptText="Enter interest rate"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="2"/>
+
+            <Label text="Term (Months):"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="3"/>
+            <TextField fx:id="termMonthsField"
+                       promptText="Enter loan term"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="3"/>
+
+            <Label text="Issue Date:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="4"/>
+            <TextField fx:id="issueDateField"
+                       editable="false"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="4"/>
+        </GridPane>
+    </VBox>
+
+    <!-- Officer Information Section -->
+    <VBox spacing="16">
+        <Label text="Officer Information"
+               styleClass="section-header"/>
+
+        <GridPane styleClass="form-grid" hgap="16" vgap="16">
+            <columnConstraints>
+                <ColumnConstraints minWidth="120" prefWidth="150"/>
+                <ColumnConstraints hgrow="ALWAYS"/>
+            </columnConstraints>
+
+            <Label text="Officer ID:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="0"/>
+            <TextField fx:id="officerIdField"
+                       promptText="Enter officer ID"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="0"/>
+
+            <Label text="Officer Name:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="1"/>
+            <TextField fx:id="officerNameField"
+                       promptText="Enter officer name"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="1"/>
+
+            <Label text="Officer Email:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="2"/>
+            <TextField fx:id="officerEmailField"
+                       promptText="Enter officer email"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="2"/>
+
+            <Label text="Officer Contact:"
+                   GridPane.columnIndex="0"
+                   GridPane.rowIndex="3"/>
+            <TextField fx:id="officerContactField"
+                       promptText="Enter officer contact (09...)"
+                       GridPane.columnIndex="1"
+                       GridPane.rowIndex="3"/>
+        </GridPane>
+    </VBox>
+
+</VBox>

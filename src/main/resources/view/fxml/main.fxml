@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.image.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns="http://javafx.com/javafx"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.bankit.loan.controller.MainController"
+      styleClass="main-container">
+
+    <!-- Header with Logo -->
+    <HBox styleClass="header" alignment="CENTER_LEFT">
+        <ImageView styleClass="logo">
+            <Image url="@../../images/Logo.png"/>
+        </ImageView>
+        <Label fx:id="headerLabel"
+               text="BankIT Loan Management System"
+               styleClass="header-text"/>
+    </HBox>
+
+    <!-- Main Content using SplitPane -->
+    <SplitPane VBox.vgrow="ALWAYS" orientation="VERTICAL" dividerPositions="0.7">
+        <!-- Top Section with Form and Calculator -->
+        <HBox spacing="24">
+            <padding>
+                <Insets top="24" right="24" bottom="24" left="24"/>
+            </padding>
+
+            <!-- Left Side - Form Section -->
+            <ScrollPane fitToWidth="true"
+                        HBox.hgrow="ALWAYS"
+                        styleClass="custom-scroll-pane">
+                <VBox spacing="24" styleClass="form-section">
+                    <fx:include source="/view/fxml/loan-form.fxml"/>
+                </VBox>
+            </ScrollPane>
+
+            <!-- Right Side - Calculator Section -->
+            <VBox spacing="24"
+                  styleClass="calculator-section"
+                  minWidth="400"
+                  maxWidth="400">
+                <fx:include source="/view/fxml/loan-calculator.fxml"/>
+
+                <!-- Action Buttons Grid -->
+                <GridPane hgap="8" vgap="8">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="33.33"/>
+                        <ColumnConstraints percentWidth="33.33"/>
+                        <ColumnConstraints percentWidth="33.33"/>
+                    </columnConstraints>
+
+                    <Button fx:id="calculateBtn"
+                            text="Calculate"
+                            styleClass="button, primary-button"
+                            onAction="#handleCalculate"
+                            maxWidth="Infinity"
+                            GridPane.columnIndex="0"
+                            GridPane.rowIndex="0"/>
+
+                    <Button fx:id="saveBtn"
+                            text="Save"
+                            styleClass="button, success-button"
+                            onAction="#handleSave"
+                            maxWidth="Infinity"
+                            GridPane.columnIndex="1"
+                            GridPane.rowIndex="0"/>
+
+                    <Button fx:id="updateBtn"
+                            text="Update"
+                            styleClass="button, secondary-button"
+                            onAction="#handleUpdate"
+                            maxWidth="Infinity"
+                            GridPane.columnIndex="2"
+                            GridPane.rowIndex="0"/>
+
+                    <Button fx:id="deleteBtn"
+                            text="Delete"
+                            styleClass="button, danger-button"
+                            onAction="#handleDelete"
+                            maxWidth="Infinity"
+                            GridPane.columnIndex="0"
+                            GridPane.rowIndex="1"/>
+
+                    <Button fx:id="resetBtn"
+                            text="Reset"
+                            styleClass="button, secondary-button"
+                            onAction="#handleReset"
+                            maxWidth="Infinity"
+                            GridPane.columnIndex="1"
+                            GridPane.rowIndex="1"
+                            GridPane.columnSpan="2"/>
+                </GridPane>
+            </VBox>
+        </HBox>
+
+        <!-- Bottom Section - Table -->
+        <VBox minHeight="200">
+            <fx:include source="/view/fxml/loan-table.fxml"/>
+        </VBox>
+    </SplitPane>
+</VBox>
