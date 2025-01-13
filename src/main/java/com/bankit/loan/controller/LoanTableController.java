@@ -1,5 +1,6 @@
 package com.bankit.loan.controller;
 
+import com.bankit.loan.config.DatabaseConfig;
 import com.bankit.loan.model.Loan;
 import com.bankit.loan.service.LoanService;
 import com.bankit.loan.service.ServiceFactory;
@@ -128,12 +129,29 @@ public class LoanTableController implements Initializable {
 
     private void loadData() {
         try {
+            DatabaseConfig.ensureConnection();
             loans = FXCollections.observableArrayList(loanService.getAllLoans());
             filteredLoans = new FilteredList<>(loans);
             loanTable.setItems(filteredLoans);
+            loanTable.refresh();
         } catch (Exception e) {
             AlertUtils.showError("Data Load Error", "Error loading loan data: " + e.getMessage());
         }
+    }
+
+    @FXML
+    private void handleRefresh() {
+        try {
+            DatabaseConfig.closeConnection(); // Force new connection
+            DatabaseConfig.ensureConnection();
+            loadData(); // Reuse existing load data method
+        } catch (Exception e) {
+            AlertUtils.showError("Refresh Error", "Failed to refresh data: " + e.getMessage());
+        }
+    }
+
+    public void refreshTable() {
+        handleRefresh();
     }
 
     @FXML
@@ -205,14 +223,6 @@ public class LoanTableController implements Initializable {
         Loan selectedLoan = loanTable.getSelectionModel().getSelectedItem();
         return selectedLoan != null ? selectedLoan.getLoanId() : null;
     }
-
-    /**
-     * Refreshes the table data
-     */
-    public void refreshTable() {
-        loadData();
-    }
-
 
     /**
      * Custom TableCell for currency formatting

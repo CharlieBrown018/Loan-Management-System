@@ -46,8 +46,10 @@
 .header {
     -fx-background-color: -fx-brand-dark;
     -fx-padding: 12px 24px;
-    -fx-spacing: 16;
+    -fx-alignment: center-left;
+    -fx-spacing: 20;
     -fx-effect: -fx-shadow-sm;
+    -fx-effect: dropshadow(gaussian, rgba(0,0,0,0.2), 4, 0, 0, 2);
 }
 
 .header .logo {
@@ -57,9 +59,10 @@
 }
 
 .header-text {
-    -fx-font-size: 20px;
+    -fx-text-fill: white;
+    -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: -fx-brand-light;
+    -fx-padding: 0 0 0 10;
 }
 
 /* Split Pane styling */

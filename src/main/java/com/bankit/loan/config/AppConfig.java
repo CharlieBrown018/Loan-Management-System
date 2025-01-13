@@ -1,7 +1,11 @@
 package com.bankit.loan.config;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.Properties;
 
 /**
@@ -12,10 +16,12 @@ public class AppConfig {
     private static final Properties properties = new Properties();
     private static final String CONFIG_FILE = "/config.properties";
     private static final String DB_URL_KEY = "db.url";
-    private static final String DB_DEFAULT_URL = "jdbc:sqlite:src/main/resources/db/loandb.sqlite";
+    private static final String DB_PATH = "src/main/resources/db/loandb.sqlite";
+    private static final String DB_DEFAULT_URL = "jdbc:sqlite:" + DB_PATH;
 
     static {
         loadProperties();
+        ensureDatabaseExists();
     }
 
     /**
@@ -27,12 +33,30 @@ public class AppConfig {
             if (input != null) {
                 properties.load(input);
             } else {
-                // Set default values if config file is not found
                 setDefaultProperties();
             }
         } catch (IOException e) {
             System.err.println("Failed to load configuration file: " + e.getMessage());
             setDefaultProperties();
+        }
+    }
+
+    /**
+     * Ensures database directory and file exist
+     */
+    private static void ensureDatabaseExists() {
+        try {
+            // Create database directory if it doesn't exist
+            Path dbDir = Paths.get("src/main/resources/db");
+            Files.createDirectories(dbDir);
+
+            // Create database file if it doesn't exist
+            File dbFile = new File(DB_PATH);
+            if (!dbFile.exists()) {
+                dbFile.createNewFile();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to initialize database file: " + e.getMessage(), e);
         }
     }
 

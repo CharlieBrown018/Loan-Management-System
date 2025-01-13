@@ -1,12 +1,15 @@
 package com.bankit.loan.service;
 
+import com.bankit.loan.config.DatabaseConfig;
 import com.bankit.loan.dao.DAOFactory;
 import com.bankit.loan.dao.LoanDAO;
 import com.bankit.loan.model.Loan;
+import com.bankit.loan.model.Officer;
 import com.bankit.loan.util.ValidationUtils;
 
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -30,9 +33,32 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public void createLoan(Loan loan) throws SQLException {
         validateLoan(loan);
-        String loanId = generateLoanId();
-        loan.setLoanId(loanId);
-        loanDAO.save(loan);
+
+        DatabaseConfig.ensureConnection();
+        DatabaseConfig.beginTransaction();
+
+        try {
+            Officer officer = loan.getOfficer();
+            Optional<Officer> existingOfficer = DAOFactory.getInstance()
+                    .getOfficerDAO()
+                    .findById(officer.getOfficerId());
+
+            if (existingOfficer.isEmpty()) {
+                DAOFactory.getInstance()
+                        .getOfficerDAO()
+                        .save(officer);
+            }
+
+            if (loan.getLoanId() == null || loan.getLoanId().trim().isEmpty()) {
+                loan.setLoanId(generateLoanId());
+            }
+
+            loanDAO.save(loan);
+            DatabaseConfig.commitTransaction();
+        } catch (SQLException e) {
+            DatabaseConfig.rollbackTransaction();
+            throw e;
+        }
     }
 
     @Override
@@ -56,6 +82,7 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     public List<Loan> getAllLoans() throws SQLException {
+        DatabaseConfig.ensureConnection();
         return loanDAO.findAll();
     }
 

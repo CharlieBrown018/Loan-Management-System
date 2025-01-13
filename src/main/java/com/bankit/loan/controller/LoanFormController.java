@@ -4,6 +4,7 @@ import com.bankit.loan.model.AccountType;
 import com.bankit.loan.model.Loan;
 import com.bankit.loan.model.Officer;
 import com.bankit.loan.service.ServiceFactory;
+import com.bankit.loan.util.AlertUtils;
 import com.bankit.loan.util.DateUtils;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
@@ -11,6 +12,7 @@ import javafx.scene.control.*;
 import javafx.scene.paint.Color;
 import javafx.util.StringConverter;
 import java.net.URL;
+import java.time.LocalDate;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import java.util.function.UnaryOperator;
@@ -144,32 +146,44 @@ public class LoanFormController implements Initializable {
      * Gets the loan data from the form
      */
     public Loan getLoanData() {
-        Loan loan = new Loan();
+        try {
+            Loan loan = new Loan();
 
-        // Set customer information
-        loan.setCustomerId(customerIdField.getText());
-        loan.setCustomerName(fullNameField.getText());
-        loan.setContact(contactField.getText());
-        loan.setEmail(emailField.getText());
-        loan.setAddress(addressField.getText());
-        loan.setAccountType(accountTypeCombo.getValue());
+            // Set customer information
+            loan.setCustomerId(customerIdField.getText());
+            loan.setCustomerName(fullNameField.getText());
+            loan.setContact(contactField.getText());
+            loan.setEmail(emailField.getText());
+            loan.setAddress(addressField.getText());
+            loan.setAccountType(accountTypeCombo.getValue());
 
-        // Set loan information
-        loan.setLoanId(loanIdField.getText());
-        loan.setLoanAmount(Double.parseDouble(loanAmountField.getText()));
-        loan.setInterestRate(Double.parseDouble(interestRateField.getText()));
-        loan.setTermMonths(Integer.parseInt(termMonthsField.getText()));
-        loan.setIssueDate(DateUtils.parseDate(issueDateField.getText()));
+            // Set loan information
+            loan.setLoanId(loanIdField.getText());
+            loan.setLoanAmount(Double.parseDouble(loanAmountField.getText()));
+            loan.setInterestRate(Double.parseDouble(interestRateField.getText()));
+            loan.setTermMonths(Integer.parseInt(termMonthsField.getText()));
 
-        // Set officer information
-        Officer officer = new Officer();
-        officer.setOfficerId(officerIdField.getText());
-        officer.setName(officerNameField.getText());
-        officer.setEmail(officerEmailField.getText());
-        officer.setContact(officerContactField.getText());
-        loan.setOfficer(officer);
+            // Parse and set issue date
+            LocalDate issueDate = DateUtils.parseDate(issueDateField.getText());
+            loan.setIssueDate(issueDate);
 
-        return loan;
+            // Calculate and set due date based on term months
+            LocalDate dueDate = DateUtils.calculateDueDate(issueDate, loan.getTermMonths());
+            loan.setDueDate(dueDate);
+
+            // Set officer information
+            Officer officer = new Officer();
+            officer.setOfficerId(officerIdField.getText());
+            officer.setName(officerNameField.getText());
+            officer.setEmail(officerEmailField.getText());
+            officer.setContact(officerContactField.getText());
+            loan.setOfficer(officer);
+
+            return loan;
+        } catch (Exception e) {
+            AlertUtils.showError("Data Error", "Invalid data: " + e.getMessage());
+            return null;
+        }
     }
 
     /**

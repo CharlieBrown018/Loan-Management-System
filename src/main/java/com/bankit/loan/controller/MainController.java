@@ -1,5 +1,6 @@
 package com.bankit.loan.controller;
 
+import com.bankit.loan.config.DatabaseConfig;
 import com.bankit.loan.model.Loan;
 import com.bankit.loan.service.LoanService;
 import com.bankit.loan.service.ServiceFactory;
@@ -34,6 +35,9 @@ public class MainController implements Initializable {
     public void initialize(URL url, ResourceBundle rb) {
         // Initialize service
         loanService = ServiceFactory.getInstance().getLoanService();
+
+        // Set header text
+        headerLabel.setText("BankIT Loan Management System");
 
         // Initial button states
         updateBtn.setDisable(true);
@@ -90,6 +94,9 @@ public class MainController implements Initializable {
             loan.setTotalPayment(calculations[1]);
 
             loanService.createLoan(loan);
+
+            // Force refresh after save
+            DatabaseConfig.closeConnection();
             tableController.refreshTable();
             handleReset();
 

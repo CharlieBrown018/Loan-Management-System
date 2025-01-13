@@ -11,13 +11,19 @@
       styleClass="main-container">
 
     <!-- Header with Logo -->
-    <HBox styleClass="header" alignment="CENTER_LEFT">
+    <HBox styleClass="header" spacing="20">
+        <padding>
+            <Insets top="15" right="20" bottom="15" left="20"/>
+        </padding>
+
         <ImageView styleClass="logo">
             <Image url="@../../images/Logo.png"/>
         </ImageView>
+
         <Label fx:id="headerLabel"
                text="BankIT Loan Management System"
-               styleClass="header-text"/>
+               styleClass="header-text"
+               style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
     </HBox>
 
     <!-- Main Content using SplitPane -->
@@ -33,7 +39,7 @@
                         HBox.hgrow="ALWAYS"
                         styleClass="custom-scroll-pane">
                 <VBox spacing="24" styleClass="form-section">
-                    <fx:include source="/view/fxml/loan-form.fxml"/>
+                    <fx:include fx:id="loanForm" source="/view/fxml/loan-form.fxml"/>
                 </VBox>
             </ScrollPane>
 
@@ -42,7 +48,7 @@
                   styleClass="calculator-section"
                   minWidth="400"
                   maxWidth="400">
-                <fx:include source="/view/fxml/loan-calculator.fxml"/>
+                <fx:include fx:id="loanCalculator" source="/view/fxml/loan-calculator.fxml"/>
 
                 <!-- Action Buttons Grid -->
                 <GridPane hgap="8" vgap="8">
@@ -98,7 +104,7 @@
 
         <!-- Bottom Section - Table -->
         <VBox minHeight="200">
-            <fx:include source="/view/fxml/loan-table.fxml"/>
+            <fx:include fx:id="loanTable" source="/view/fxml/loan-table.fxml"/>
         </VBox>
     </SplitPane>
 </VBox>

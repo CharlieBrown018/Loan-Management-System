@@ -37,6 +37,12 @@
                 styleClass="button, primary-button"
                 onAction="#handleImport"
                 minWidth="100"/>
+
+        <Button fx:id="refreshBtn"
+                text="Refresh"
+                styleClass="button, primary-button"
+                onAction="#handleRefresh"
+                minWidth="100"/>
     </HBox>
 
     <!-- Table with Scroll -->

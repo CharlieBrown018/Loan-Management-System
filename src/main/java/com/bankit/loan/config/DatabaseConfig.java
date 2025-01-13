@@ -11,6 +11,7 @@ import java.sql.Statement;
  */
 public class DatabaseConfig {
     private static Connection connection;
+    private static boolean isInitialized = false;
 
     /**
      * Gets a connection to the database
@@ -19,12 +20,21 @@ public class DatabaseConfig {
      * @return A Connection object
      * @throws SQLException if a database access error occurs
      */
-    public static Connection getConnection() throws SQLException {
+    public static synchronized Connection getConnection() throws SQLException {
         if (connection == null || connection.isClosed()) {
             connection = DriverManager.getConnection(AppConfig.getDatabaseUrl());
-            initializeDatabase();
+            if (!isInitialized) {
+                initializeDatabase();
+                isInitialized = true;
+            }
         }
         return connection;
+    }
+
+    public static synchronized void ensureConnection() throws SQLException {
+        if (connection == null || connection.isClosed()) {
+            getConnection();
+        }
     }
 
     /**
@@ -37,9 +47,13 @@ public class DatabaseConfig {
             // Enable foreign keys
             statement.execute("PRAGMA foreign_keys = ON");
 
+            // Drop existing tables if they exist
+            statement.execute("DROP TABLE IF EXISTS loans");
+            statement.execute("DROP TABLE IF EXISTS officers");
+
             // Create Officers table
             statement.execute("""
-                CREATE TABLE IF NOT EXISTS officers (
+                CREATE TABLE officers (
                     officer_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     email TEXT NOT NULL UNIQUE,
@@ -49,7 +63,7 @@ public class DatabaseConfig {
 
             // Create Loans table
             statement.execute("""
-                CREATE TABLE IF NOT EXISTS loans (
+                CREATE TABLE loans (
                     loan_id TEXT PRIMARY KEY,
                     customer_id TEXT NOT NULL,
                     customer_name TEXT NOT NULL,
@@ -74,14 +88,16 @@ public class DatabaseConfig {
     /**
      * Closes the database connection if it's open
      */
-    public static void closeConnection() {
+    public static synchronized void closeConnection() {
         try {
             if (connection != null && !connection.isClosed()) {
                 connection.close();
-                connection = null;
             }
         } catch (SQLException e) {
             System.err.println("Error closing database connection: " + e.getMessage());
+        } finally {
+            connection = null;
+            isInitialized = false;
         }
     }
 
@@ -91,6 +107,7 @@ public class DatabaseConfig {
      * @throws SQLException if a database access error occurs
      */
     public static void beginTransaction() throws SQLException {
+        ensureConnection();
         connection.setAutoCommit(false);
     }
 

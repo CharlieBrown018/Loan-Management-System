@@ -1,5 +1,9 @@
 package com.bankit.loan;
 
+import com.bankit.loan.controller.LoanCalculatorController;
+import com.bankit.loan.controller.LoanFormController;
+import com.bankit.loan.controller.LoanTableController;
+import com.bankit.loan.controller.MainController;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -31,6 +35,20 @@ public class App extends Application {
 
             FXMLLoader loader = new FXMLLoader(fxmlUrl);
             Parent root = loader.load();
+
+            // Get the main controller and initialize controllers
+            MainController mainController = loader.getController();
+
+            // Initialize child controllers using proper fx:id values from FXML
+            mainController.setFormController(
+                    (LoanFormController) loader.getNamespace().get("loanFormController")
+            );
+            mainController.setCalculatorController(
+                    (LoanCalculatorController) loader.getNamespace().get("loanCalculatorController")
+            );
+            mainController.setTableController(
+                    (LoanTableController) loader.getNamespace().get("loanTableController")
+            );
 
             Scene scene = new Scene(root);
 
