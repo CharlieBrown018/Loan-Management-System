@@ -96,7 +96,7 @@ public class MainController implements Initializable {
             loanService.createLoan(loan);
 
             // Force refresh after save
-            DatabaseConfig.closeConnection();
+            DatabaseConfig.closeAllConnections();
             tableController.refreshTable();
             handleReset();
 

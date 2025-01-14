@@ -3,7 +3,8 @@ package com.bankit.loan.model;
 import java.util.Objects;
 
 /**
- * Represents a loan officer in the system
+ * Represents a loan officer in the system.
+ * Manages officer details and validation.
  */
 public class Officer {
     private String officerId;
@@ -11,24 +12,38 @@ public class Officer {
     private String email;
     private String contact;
 
-    // Default constructor
-    public Officer() {}
-
-    // Constructor with all fields
-    public Officer(String officerId, String name, String email, String contact) {
-        this.officerId = Objects.requireNonNull(officerId, "Officer ID cannot be null");
-        this.name = Objects.requireNonNull(name, "Officer name cannot be null");
-        this.email = Objects.requireNonNull(email, "Officer email cannot be null");
-        this.contact = Objects.requireNonNull(contact, "Officer contact cannot be null");
+    /**
+     * Default constructor initializing empty fields
+     */
+    public Officer() {
+        this.officerId = "";
+        this.name = "";
+        this.email = "";
+        this.contact = "";
     }
 
-    // Getters and Setters with validation
+    /**
+     * Constructor with all fields and validation
+     */
+    public Officer(String officerId, String name, String email, String contact) {
+        setOfficerId(officerId);
+        setName(name);
+        setEmail(email);
+        setContact(contact);
+    }
+
     public String getOfficerId() {
         return officerId;
     }
 
     public void setOfficerId(String officerId) {
-        this.officerId = Objects.requireNonNull(officerId, "Officer ID cannot be null");
+        if (officerId == null || officerId.trim().isEmpty()) {
+            throw new IllegalArgumentException("Officer ID cannot be empty");
+        }
+        if (!officerId.matches("^OFF\\d{4}$")) {
+            throw new IllegalArgumentException("Officer ID must start with 'OFF' followed by 4 digits");
+        }
+        this.officerId = officerId.trim();
     }
 
     public String getName() {
@@ -36,7 +51,13 @@ public class Officer {
     }
 
     public void setName(String name) {
-        this.name = Objects.requireNonNull(name, "Officer name cannot be null");
+        if (name == null || name.trim().isEmpty()) {
+            throw new IllegalArgumentException("Officer name cannot be empty");
+        }
+        if (name.trim().length() < 2) {
+            throw new IllegalArgumentException("Officer name must be at least 2 characters");
+        }
+        this.name = name.trim();
     }
 
     public String getEmail() {
@@ -44,7 +65,13 @@ public class Officer {
     }
 
     public void setEmail(String email) {
-        this.email = Objects.requireNonNull(email, "Officer email cannot be null");
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("Officer email cannot be empty");
+        }
+        if (!email.matches("^[A-Za-z0-9+_.-]+@(.+)$")) {
+            throw new IllegalArgumentException("Invalid email format");
+        }
+        this.email = email.trim();
     }
 
     public String getContact() {
@@ -52,7 +79,13 @@ public class Officer {
     }
 
     public void setContact(String contact) {
-        this.contact = Objects.requireNonNull(contact, "Officer contact cannot be null");
+        if (contact == null || contact.trim().isEmpty()) {
+            throw new IllegalArgumentException("Officer contact cannot be empty");
+        }
+        if (!contact.matches("^09\\d{9}$")) {
+            throw new IllegalArgumentException("Contact must start with 09 and be 11 digits");
+        }
+        this.contact = contact;
     }
 
     @Override
@@ -70,10 +103,6 @@ public class Officer {
 
     @Override
     public String toString() {
-        return "Officer{" +
-                "officerId='" + officerId + '\'' +
-                ", name='" + name + '\'' +
-                ", email='" + email + '\'' +
-                '}';
+        return String.format("%s - %s", officerId, name);
     }
 }

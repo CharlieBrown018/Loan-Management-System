@@ -166,10 +166,22 @@ public class LoanDAOImpl implements LoanDAO {
         loan.setMonthlyPayment(rs.getDouble("monthly_payment"));
         loan.setTotalPayment(rs.getDouble("total_payment"));
 
-        // Load the associated officer
+        // Load the associated officer with null check
         String officerId = rs.getString("officer_id");
-        Optional<Officer> officer = officerDAO.findById(officerId);
-        officer.ifPresent(loan::setOfficer);
+        if (officerId != null) {
+            Optional<Officer> officer = officerDAO.findById(officerId);
+            if (officer.isPresent()) {
+                loan.setOfficer(officer.get());
+            } else {
+                // Create a default officer if not found
+                Officer defaultOfficer = new Officer();
+                defaultOfficer.setOfficerId(officerId);
+                defaultOfficer.setName("Unknown");
+                defaultOfficer.setEmail("unknown@bankit.com");
+                defaultOfficer.setContact("0000000000");
+                loan.setOfficer(defaultOfficer);
+            }
+        }
 
         return loan;
     }

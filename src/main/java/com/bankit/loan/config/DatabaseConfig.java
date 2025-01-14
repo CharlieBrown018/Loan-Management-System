@@ -1,59 +1,65 @@
+// DatabaseConfig.java
 package com.bankit.loan.config;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * Database configuration and connection management
  * Handles database connection lifecycle and initialization
  */
 public class DatabaseConfig {
-    private static Connection connection;
+    private static final int MAX_POOL_SIZE = 10;
+    private static final Queue<Connection> connectionPool = new ConcurrentLinkedQueue<>();
+    private static final Object lock = new Object();
     private static boolean isInitialized = false;
 
     /**
-     * Gets a connection to the database
-     * Creates a new connection if one doesn't exist or is closed
-     *
-     * @return A Connection object
-     * @throws SQLException if a database access error occurs
+     * Gets a connection from the pool or creates a new one if needed
      */
     public static synchronized Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            connection = DriverManager.getConnection(AppConfig.getDatabaseUrl());
+        Connection conn = connectionPool.poll();
+
+        if (conn == null || conn.isClosed()) {
+            conn = createNewConnection();
             if (!isInitialized) {
-                initializeDatabase();
+                initializeDatabase(conn);
                 isInitialized = true;
             }
         }
-        return connection;
+
+        return conn;
     }
 
-    public static synchronized void ensureConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            getConnection();
+    /**
+     * Creates a new database connection with proper settings
+     */
+    private static Connection createNewConnection() throws SQLException {
+        Connection conn = DriverManager.getConnection(AppConfig.getDatabaseUrl());
+        conn.setAutoCommit(true);
+
+        // Enable WAL mode and set busy timeout for better concurrent access
+        try (Statement stmt = conn.createStatement()) {
+            stmt.execute("PRAGMA journal_mode=WAL");
+            stmt.execute("PRAGMA busy_timeout=30000");
+            stmt.execute("PRAGMA foreign_keys=ON");
         }
+
+        return conn;
     }
 
     /**
      * Initializes the database schema if it doesn't exist
-     *
-     * @throws SQLException if a database access error occurs
      */
-    private static void initializeDatabase() throws SQLException {
-        try (Statement statement = connection.createStatement()) {
-            // Enable foreign keys
-            statement.execute("PRAGMA foreign_keys = ON");
-
-            // Drop existing tables if they exist
-            statement.execute("DROP TABLE IF EXISTS loans");
-            statement.execute("DROP TABLE IF EXISTS officers");
-
-            // Create Officers table
+    private static void initializeDatabase(Connection conn) throws SQLException {
+        try (Statement statement = conn.createStatement()) {
+            // Create Officers table if not exists
             statement.execute("""
-                CREATE TABLE officers (
+                CREATE TABLE IF NOT EXISTS officers (
                     officer_id TEXT PRIMARY KEY,
                     name TEXT NOT NULL,
                     email TEXT NOT NULL UNIQUE,
@@ -61,9 +67,9 @@ public class DatabaseConfig {
                 )
             """);
 
-            // Create Loans table
+            // Create Loans table if not exists
             statement.execute("""
-                CREATE TABLE loans (
+                CREATE TABLE IF NOT EXISTS loans (
                     loan_id TEXT PRIMARY KEY,
                     customer_id TEXT NOT NULL,
                     customer_name TEXT NOT NULL,
@@ -86,52 +92,65 @@ public class DatabaseConfig {
     }
 
     /**
-     * Closes the database connection if it's open
+     * Returns a connection to the pool
      */
-    public static synchronized void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
+    public static void releaseConnection(Connection conn) {
+        if (conn != null) {
+            try {
+                if (!conn.isClosed() && connectionPool.size() < MAX_POOL_SIZE) {
+                    connectionPool.offer(conn);
+                } else {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
             }
-        } catch (SQLException e) {
-            System.err.println("Error closing database connection: " + e.getMessage());
-        } finally {
-            connection = null;
-            isInitialized = false;
         }
     }
 
     /**
-     * Begins a transaction
-     *
-     * @throws SQLException if a database access error occurs
+     * Closes all connections in the pool
      */
-    public static void beginTransaction() throws SQLException {
-        ensureConnection();
-        connection.setAutoCommit(false);
+    public static synchronized void closeAllConnections() {
+        Connection conn;
+        while ((conn = connectionPool.poll()) != null) {
+            try {
+                if (!conn.isClosed()) {
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                e.printStackTrace();
+            }
+        }
+        isInitialized = false;
     }
 
     /**
-     * Commits the current transaction
-     *
-     * @throws SQLException if a database access error occurs
+     * Begins a transaction on a specific connection
      */
-    public static void commitTransaction() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            connection.commit();
-            connection.setAutoCommit(true);
+    public static void beginTransaction(Connection conn) throws SQLException {
+        if (conn != null && !conn.isClosed()) {
+            conn.setAutoCommit(false);
         }
     }
 
     /**
-     * Rolls back the current transaction
-     *
-     * @throws SQLException if a database access error occurs
+     * Commits a transaction on a specific connection
      */
-    public static void rollbackTransaction() throws SQLException {
-        if (connection != null && !connection.isClosed()) {
-            connection.rollback();
-            connection.setAutoCommit(true);
+    public static void commitTransaction(Connection conn) throws SQLException {
+        if (conn != null && !conn.isClosed()) {
+            conn.commit();
+            conn.setAutoCommit(true);
+        }
+    }
+
+    /**
+     * Rolls back a transaction on a specific connection
+     */
+    public static void rollbackTransaction(Connection conn) throws SQLException {
+        if (conn != null && !conn.isClosed()) {
+            conn.rollback();
+            conn.setAutoCommit(true);
         }
     }
 }

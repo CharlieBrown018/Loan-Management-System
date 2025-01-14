@@ -1,5 +1,6 @@
 package com.bankit.loan;
 
+import com.bankit.loan.config.DatabaseConfig;
 import com.bankit.loan.controller.LoanCalculatorController;
 import com.bankit.loan.controller.LoanFormController;
 import com.bankit.loan.controller.LoanTableController;
@@ -72,6 +73,12 @@ public class App extends Application {
             System.err.println("Error loading FXML/CSS: " + e.getMessage());
             System.exit(1);
         }
+    }
+
+    @Override
+    public void stop() {
+        // Cleanup on application shutdown
+        DatabaseConfig.closeAllConnections();
     }
 
     /**

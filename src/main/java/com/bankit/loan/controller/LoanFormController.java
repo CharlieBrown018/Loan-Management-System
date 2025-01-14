@@ -3,16 +3,20 @@ package com.bankit.loan.controller;
 import com.bankit.loan.model.AccountType;
 import com.bankit.loan.model.Loan;
 import com.bankit.loan.model.Officer;
+import com.bankit.loan.service.OfficerService;
 import com.bankit.loan.service.ServiceFactory;
 import com.bankit.loan.util.AlertUtils;
 import com.bankit.loan.util.DateUtils;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
-import javafx.scene.paint.Color;
 import javafx.util.StringConverter;
+
 import java.net.URL;
+import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
 import java.util.function.UnaryOperator;
@@ -31,10 +35,11 @@ public class LoanFormController implements Initializable {
     @FXML private TextField termMonthsField;
     @FXML private TextField issueDateField;
     @FXML private TextField officerIdField;
-    @FXML private TextField officerNameField;
+    @FXML private ComboBox<Officer> officerNameComboBox;
     @FXML private TextField officerEmailField;
     @FXML private TextField officerContactField;
 
+    private OfficerService officerService;
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^09\\d{9}$");
 
@@ -43,10 +48,11 @@ public class LoanFormController implements Initializable {
         setupTextFormatters();
         setupValidation();
         setupInitialValues();
+        officerService = ServiceFactory.getInstance().getOfficerService();
+        setupOfficerComboBox();
     }
 
     private void setupTextFormatters() {
-        // Numeric formatter for amount and rate
         UnaryOperator<TextFormatter.Change> numericFilter = change -> {
             String newText = change.getControlNewText();
             if (newText.matches("-?\\d*\\.?\\d*")) {
@@ -55,7 +61,6 @@ public class LoanFormController implements Initializable {
             return null;
         };
 
-        // Integer formatter for term months
         UnaryOperator<TextFormatter.Change> integerFilter = change -> {
             String newText = change.getControlNewText();
             if (newText.matches("\\d*")) {
@@ -70,20 +75,13 @@ public class LoanFormController implements Initializable {
     }
 
     private void setupValidation() {
-        // Email validation
         setupEmailValidation(emailField);
         setupEmailValidation(officerEmailField);
-
-        // Phone validation
         setupPhoneValidation(contactField);
         setupPhoneValidation(officerContactField);
-
-        // Required fields validation
         setupRequiredFieldValidation(customerIdField, "Customer ID is required");
         setupRequiredFieldValidation(fullNameField, "Full name must be at least 2 characters");
         setupRequiredFieldValidation(addressField, "Address is required");
-        setupRequiredFieldValidation(officerIdField, "Officer ID is required");
-        setupRequiredFieldValidation(officerNameField, "Officer name must be at least 2 characters");
     }
 
     private void setupEmailValidation(TextField field) {
@@ -124,16 +122,106 @@ public class LoanFormController implements Initializable {
     }
 
     private void setupInitialValues() {
-        // Setup account type combo box
         accountTypeCombo.getItems().addAll(AccountType.values());
         accountTypeCombo.setPromptText("Select Account Type");
-
-        // Set current date
         issueDateField.setText(DateUtils.getCurrentDate());
         issueDateField.setEditable(false);
-
-        // Set loan ID field as non-editable
         loanIdField.setEditable(false);
+    }
+
+    private void setupOfficerComboBox() {
+        try {
+            List<Officer> officers = officerService.getAllOfficers();
+            officerNameComboBox.setItems(FXCollections.observableArrayList(officers));
+            officerNameComboBox.setEditable(true);
+
+            // Set up string converter for Officer objects
+            officerNameComboBox.setConverter(new StringConverter<Officer>() {
+                @Override
+                public String toString(Officer officer) {
+                    if (officer == null) return null;
+                    return officer.getName();
+                }
+
+                @Override
+                public Officer fromString(String string) {
+                    if (string == null || string.trim().isEmpty()) return null;
+                    // Try to find existing officer
+                    return officers.stream()
+                            .filter(o -> o.getName().equalsIgnoreCase(string.trim()))
+                            .findFirst()
+                            .orElse(null); // Return null for new officers instead of creating one
+                }
+            });
+
+            // Setup display in dropdown list
+            officerNameComboBox.setCellFactory(param -> new ListCell<>() {
+                @Override
+                protected void updateItem(Officer officer, boolean empty) {
+                    super.updateItem(officer, empty);
+                    if (empty || officer == null) {
+                        setText(null);
+                    } else {
+                        setText(String.format("%s - %s", officer.getOfficerId(), officer.getName()));
+                    }
+                }
+            });
+
+            // Handle selection changes - only trigger for actual selections
+            officerNameComboBox.valueProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null && newVal.getOfficerId() != null) {
+                    // Only handle existing officers selected from dropdown
+                    officerIdField.setText(newVal.getOfficerId());
+                    officerEmailField.setText(newVal.getEmail());
+                    officerContactField.setText(newVal.getContact());
+                    officerEmailField.setEditable(false);
+                    officerContactField.setEditable(false);
+                } else {
+                    // For new officers or cleared selection
+                    if (officerNameComboBox.getEditor().getText().trim().isEmpty()) {
+                        // Clear everything if name is empty
+                        officerIdField.clear();
+                        officerEmailField.clear();
+                        officerContactField.clear();
+                    } else {
+                        // Generate new ID for new officer name
+                        String newOfficerId = ServiceFactory.getInstance().getOfficerService().generateOfficerId();
+                        officerIdField.setText(newOfficerId);
+                    }
+                    officerEmailField.setEditable(true);
+                    officerContactField.setEditable(true);
+                }
+            });
+
+            // Add listener for manual text entry
+            officerNameComboBox.getEditor().textProperty().addListener((obs, oldVal, newVal) -> {
+                if (newVal != null && !newVal.trim().isEmpty()) {
+                    boolean isExistingOfficer = officers.stream()
+                            .anyMatch(o -> o.getName().equalsIgnoreCase(newVal.trim()));
+
+                    if (!isExistingOfficer) {
+                        // Enable editing for new officer
+                        officerEmailField.setEditable(true);
+                        officerContactField.setEditable(true);
+
+                        if (officerIdField.getText().isEmpty()) {
+                            String newOfficerId = ServiceFactory.getInstance().getOfficerService().generateOfficerId();
+                            officerIdField.setText(newOfficerId);
+                        }
+                    }
+                }
+            });
+
+            officerNameComboBox.setPromptText("Select or enter new officer name");
+
+            // Set initial state
+            officerNameComboBox.setValue(null);
+            officerEmailField.setEditable(true);
+            officerContactField.setEditable(true);
+
+        } catch (SQLException e) {
+            AlertUtils.showError("Database Error", "Failed to load officers: " + e.getMessage());
+        }
     }
 
     @FXML
@@ -142,41 +230,43 @@ public class LoanFormController implements Initializable {
         loanIdField.setText(loanId);
     }
 
-    /**
-     * Gets the loan data from the form
-     */
     public Loan getLoanData() {
         try {
             Loan loan = new Loan();
 
-            // Set customer information
             loan.setCustomerId(customerIdField.getText());
             loan.setCustomerName(fullNameField.getText());
             loan.setContact(contactField.getText());
             loan.setEmail(emailField.getText());
             loan.setAddress(addressField.getText());
             loan.setAccountType(accountTypeCombo.getValue());
-
-            // Set loan information
             loan.setLoanId(loanIdField.getText());
             loan.setLoanAmount(Double.parseDouble(loanAmountField.getText()));
             loan.setInterestRate(Double.parseDouble(interestRateField.getText()));
             loan.setTermMonths(Integer.parseInt(termMonthsField.getText()));
 
-            // Parse and set issue date
             LocalDate issueDate = DateUtils.parseDate(issueDateField.getText());
             loan.setIssueDate(issueDate);
+            loan.setDueDate(DateUtils.calculateDueDate(issueDate, loan.getTermMonths()));
 
-            // Calculate and set due date based on term months
-            LocalDate dueDate = DateUtils.calculateDueDate(issueDate, loan.getTermMonths());
-            loan.setDueDate(dueDate);
-
-            // Set officer information
+            // Create Officer object properly
             Officer officer = new Officer();
             officer.setOfficerId(officerIdField.getText());
-            officer.setName(officerNameField.getText());
-            officer.setEmail(officerEmailField.getText());
-            officer.setContact(officerContactField.getText());
+
+            // Handle officer name from ComboBox
+            if (officerNameComboBox.getValue() != null) {
+                // If an existing officer is selected
+                Officer selectedOfficer = officerNameComboBox.getValue();
+                officer.setName(selectedOfficer.getName());
+                officer.setEmail(selectedOfficer.getEmail());
+                officer.setContact(selectedOfficer.getContact());
+            } else {
+                // If a new officer name is entered
+                officer.setName(officerNameComboBox.getEditor().getText());
+                officer.setEmail(officerEmailField.getText());
+                officer.setContact(officerContactField.getText());
+            }
+
             loan.setOfficer(officer);
 
             return loan;
@@ -186,36 +276,28 @@ public class LoanFormController implements Initializable {
         }
     }
 
-    /**
-     * Sets the form data from a loan object
-     */
     public void setLoanData(Loan loan) {
-        // Set customer information
         customerIdField.setText(loan.getCustomerId());
         fullNameField.setText(loan.getCustomerName());
         contactField.setText(loan.getContact());
         emailField.setText(loan.getEmail());
         addressField.setText(loan.getAddress());
         accountTypeCombo.setValue(loan.getAccountType());
-
-        // Set loan information
         loanIdField.setText(loan.getLoanId());
         loanAmountField.setText(String.valueOf(loan.getLoanAmount()));
         interestRateField.setText(String.valueOf(loan.getInterestRate()));
         termMonthsField.setText(String.valueOf(loan.getTermMonths()));
         issueDateField.setText(DateUtils.formatDate(loan.getIssueDate()));
 
-        // Set officer information
         Officer officer = loan.getOfficer();
-        officerIdField.setText(officer.getOfficerId());
-        officerNameField.setText(officer.getName());
-        officerEmailField.setText(officer.getEmail());
-        officerContactField.setText(officer.getContact());
+        if (officer != null) {
+            officerIdField.setText(officer.getOfficerId());
+            officerNameComboBox.setValue(officer);
+            officerEmailField.setText(officer.getEmail());
+            officerContactField.setText(officer.getContact());
+        }
     }
 
-    /**
-     * Resets the form to its initial state
-     */
     public void resetForm() {
         customerIdField.clear();
         fullNameField.clear();
@@ -223,15 +305,14 @@ public class LoanFormController implements Initializable {
         emailField.clear();
         addressField.clear();
         accountTypeCombo.setValue(null);
-
         loanIdField.clear();
         loanAmountField.clear();
         interestRateField.clear();
         termMonthsField.clear();
         issueDateField.setText(DateUtils.getCurrentDate());
-
         officerIdField.clear();
-        officerNameField.clear();
+        officerNameComboBox.setValue(null);
+        officerNameComboBox.getEditor().clear();
         officerEmailField.clear();
         officerContactField.clear();
     }

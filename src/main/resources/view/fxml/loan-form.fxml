@@ -156,10 +156,11 @@
             <Label text="Officer Name:"
                    GridPane.columnIndex="0"
                    GridPane.rowIndex="1"/>
-            <TextField fx:id="officerNameField"
-                       promptText="Enter officer name"
-                       GridPane.columnIndex="1"
-                       GridPane.rowIndex="1"/>
+            <ComboBox fx:id="officerNameComboBox"
+                      promptText="Select or enter new officer"
+                      editable="true"
+                      GridPane.columnIndex="1"
+                      GridPane.rowIndex="1"/>
 
             <Label text="Officer Email:"
                    GridPane.columnIndex="0"

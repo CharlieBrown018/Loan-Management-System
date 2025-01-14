@@ -7,6 +7,7 @@ import com.bankit.loan.model.Loan;
 import com.bankit.loan.model.Officer;
 import com.bankit.loan.util.ValidationUtils;
 
+import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -33,31 +34,51 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public void createLoan(Loan loan) throws SQLException {
         validateLoan(loan);
-
-        DatabaseConfig.ensureConnection();
-        DatabaseConfig.beginTransaction();
+        Connection conn = null;
 
         try {
-            Officer officer = loan.getOfficer();
-            Optional<Officer> existingOfficer = DAOFactory.getInstance()
-                    .getOfficerDAO()
-                    .findById(officer.getOfficerId());
+            conn = DatabaseConfig.getConnection();
+            DatabaseConfig.beginTransaction(conn);
 
-            if (existingOfficer.isEmpty()) {
-                DAOFactory.getInstance()
-                        .getOfficerDAO()
-                        .save(officer);
+            // Save officer first if it's new
+            Officer officer = loan.getOfficer();
+            if (officer != null) {
+                if (officer.getOfficerId() == null || officer.getOfficerId().trim().isEmpty()) {
+                    // Generate new officer ID for new officers
+                    officer.setOfficerId(ServiceFactory.getInstance().getOfficerService().generateOfficerId());
+                }
+
+                try {
+                    DAOFactory.getInstance().getOfficerDAO().save(officer);
+                } catch (SQLException e) {
+                    // Ignore if officer already exists
+                    if (!e.getMessage().contains("UNIQUE constraint failed")) {
+                        throw e;
+                    }
+                }
+
+                // Update loan with officer ID
+                loan.setOfficer(officer);
             }
 
+            // Generate loan ID if not present
             if (loan.getLoanId() == null || loan.getLoanId().trim().isEmpty()) {
                 loan.setLoanId(generateLoanId());
             }
 
+            // Save loan
             loanDAO.save(loan);
-            DatabaseConfig.commitTransaction();
-        } catch (SQLException e) {
-            DatabaseConfig.rollbackTransaction();
-            throw e;
+
+            DatabaseConfig.commitTransaction(conn);
+        } catch (Exception e) {
+            if (conn != null) {
+                DatabaseConfig.rollbackTransaction(conn);
+            }
+            throw new SQLException("Failed to create loan: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                DatabaseConfig.releaseConnection(conn);
+            }
         }
     }
 
@@ -82,8 +103,15 @@ public class LoanServiceImpl implements LoanService {
 
     @Override
     public List<Loan> getAllLoans() throws SQLException {
-        DatabaseConfig.ensureConnection();
-        return loanDAO.findAll();
+        Connection conn = null;
+        try {
+            conn = DatabaseConfig.getConnection();
+            return loanDAO.findAll();
+        } finally {
+            if (conn != null) {
+                DatabaseConfig.releaseConnection(conn);
+            }
+        }
     }
 
     @Override

@@ -6,9 +6,11 @@ import com.bankit.loan.service.LoanService;
 import com.bankit.loan.service.ServiceFactory;
 import com.bankit.loan.util.AlertUtils;
 import com.bankit.loan.util.DateUtils;
+import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
@@ -19,18 +21,22 @@ import javafx.beans.property.SimpleStringProperty;
 import java.io.*;
 import java.net.URL;
 import java.text.NumberFormat;
+import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * Controller for the loan table section
+ * Controller for the loan table section.
+ * Handles the display and management of loan records in a table format.
  */
 public class LoanTableController implements Initializable {
 
+    // FXML Injected Controls
     @FXML private TextField searchField;
     @FXML private Button exportBtn;
     @FXML private Button importBtn;
     @FXML private TableView<Loan> loanTable;
 
+    // Table Columns
     @FXML private TableColumn<Loan, String> loanIdColumn;
     @FXML private TableColumn<Loan, String> customerIdColumn;
     @FXML private TableColumn<Loan, String> customerNameColumn;
@@ -45,6 +51,7 @@ public class LoanTableController implements Initializable {
     @FXML private TableColumn<Loan, String> issueDateColumn;
     @FXML private TableColumn<Loan, String> officerNameColumn;
 
+    // Controller State
     private LoanService loanService;
     private ObservableList<Loan> loans;
     private FilteredList<Loan> filteredLoans;
@@ -58,25 +65,36 @@ public class LoanTableController implements Initializable {
 
         setupTableColumns();
         setupSearchField();
-        loadData();
+
+        // Load data asynchronously to prevent UI freezing
+        Platform.runLater(this::loadData);
     }
 
+    /**
+     * Sets up all table columns with appropriate cell factories and value factories
+     */
     private void setupTableColumns() {
-        // Setup basic columns
+        // Basic text columns
         loanIdColumn.setCellValueFactory(new PropertyValueFactory<>("loanId"));
         customerIdColumn.setCellValueFactory(new PropertyValueFactory<>("customerId"));
         customerNameColumn.setCellValueFactory(new PropertyValueFactory<>("customerName"));
         contactColumn.setCellValueFactory(new PropertyValueFactory<>("contact"));
         emailColumn.setCellValueFactory(new PropertyValueFactory<>("email"));
         accountTypeColumn.setCellValueFactory(new PropertyValueFactory<>("accountType"));
-        termMonthsColumn.setCellValueFactory(new PropertyValueFactory<>("termMonths"));
 
-        // Setup currency formatted columns
+        // Numeric columns
+        loanAmountColumn.setCellValueFactory(new PropertyValueFactory<>("loanAmount"));
+        interestRateColumn.setCellValueFactory(new PropertyValueFactory<>("interestRate"));
+        termMonthsColumn.setCellValueFactory(new PropertyValueFactory<>("termMonths"));
+        monthlyPaymentColumn.setCellValueFactory(new PropertyValueFactory<>("monthlyPayment"));
+        totalPaymentColumn.setCellValueFactory(new PropertyValueFactory<>("totalPayment"));
+
+        // Currency formatting for monetary values
         loanAmountColumn.setCellFactory(col -> new CurrencyTableCell());
         monthlyPaymentColumn.setCellFactory(col -> new CurrencyTableCell());
         totalPaymentColumn.setCellFactory(col -> new CurrencyTableCell());
 
-        // Setup percentage column
+        // Percentage formatting for interest rate
         interestRateColumn.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Double item, boolean empty) {
@@ -89,25 +107,20 @@ public class LoanTableController implements Initializable {
             }
         });
 
-        // Setup date column
-        issueDateColumn.setCellFactory(col -> new TableCell<>() {
-            @Override
-            protected void updateItem(String item, boolean empty) {
-                super.updateItem(item, empty);
-                if (empty || item == null) {
-                    setText(null);
-                } else {
-                    setText(DateUtils.formatDateForDisplay(DateUtils.parseDate(item)));
-                }
+        // Date formatting for issue date
+        issueDateColumn.setCellValueFactory(cellData ->
+                new SimpleStringProperty(DateUtils.formatDateForDisplay(cellData.getValue().getIssueDate())));
+
+        // Officer name handling
+        officerNameColumn.setCellValueFactory(cellData -> {
+            Loan loan = cellData.getValue();
+            if (loan != null && loan.getOfficer() != null) {
+                return new SimpleStringProperty(loan.getOfficer().getName());
             }
+            return new SimpleStringProperty("");
         });
 
-        // Setup officer name column
-        officerNameColumn.setCellValueFactory(cellData ->
-                new SimpleStringProperty(cellData.getValue().getOfficer().getName())
-        );
-
-        // Setup row selection handler
+        // Row selection handler
         loanTable.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldSelection, newSelection) -> {
                     if (newSelection != null) {
@@ -115,8 +128,23 @@ public class LoanTableController implements Initializable {
                     }
                 }
         );
+
+        // Add debug row factory
+        loanTable.setRowFactory(tv -> {
+            TableRow<Loan> row = new TableRow<>();
+            row.setOnMouseClicked(event -> {
+                if (!row.isEmpty()) {
+                    Loan loan = row.getItem();
+                    debugPrintLoan(loan);
+                }
+            });
+            return row;
+        });
     }
 
+    /**
+     * Sets up the search functionality
+     */
     private void setupSearchField() {
         searchField.textProperty().addListener((obs, oldValue, newValue) -> {
             String searchText = newValue.toLowerCase();
@@ -127,33 +155,98 @@ public class LoanTableController implements Initializable {
         });
     }
 
+    /**
+     * Loads loan data asynchronously
+     */
     private void loadData() {
-        try {
-            DatabaseConfig.ensureConnection();
-            loans = FXCollections.observableArrayList(loanService.getAllLoans());
-            filteredLoans = new FilteredList<>(loans);
-            loanTable.setItems(filteredLoans);
-            loanTable.refresh();
-        } catch (Exception e) {
-            AlertUtils.showError("Data Load Error", "Error loading loan data: " + e.getMessage());
-        }
+        Task<List<Loan>> loadTask = new Task<>() {
+            @Override
+            protected List<Loan> call() throws Exception {
+                return loanService.getAllLoans();
+            }
+        };
+
+        loadTask.setOnSucceeded(event -> {
+            List<Loan> loanList = loadTask.getValue();
+            Platform.runLater(() -> {
+                try {
+                    loans = FXCollections.observableArrayList(loanList);
+                    filteredLoans = new FilteredList<>(loans);
+                    loanTable.setItems(filteredLoans);
+                    loanTable.refresh();
+
+                    // Debug output
+                    System.out.println("Successfully loaded " + loanList.size() + " loans");
+                    loanList.forEach(this::debugPrintLoan);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    AlertUtils.showError("UI Update Error",
+                            "Error updating table: " + e.getMessage());
+                }
+            });
+        });
+
+        loadTask.setOnFailed(event -> {
+            Throwable exception = loadTask.getException();
+            Platform.runLater(() -> {
+                AlertUtils.showError("Data Load Error",
+                        "Error loading loan data: " + exception.getMessage());
+            });
+            exception.printStackTrace();
+        });
+
+        new Thread(loadTask).start();
     }
 
+    /**
+     * Debug method to print loan details
+     */
+    private void debugPrintLoan(Loan loan) {
+        System.out.println("Loan Details:");
+        System.out.println("ID: " + loan.getLoanId());
+        System.out.println("Customer: " + loan.getCustomerName());
+        System.out.println("Amount: " + currencyFormat.format(loan.getLoanAmount()));
+        System.out.println("Interest: " + String.format("%.2f%%", loan.getInterestRate()));
+        System.out.println("Monthly Payment: " + currencyFormat.format(loan.getMonthlyPayment()));
+        System.out.println("Total Payment: " + currencyFormat.format(loan.getTotalPayment()));
+        System.out.println("Issue Date: " + loan.getIssueDate());
+        System.out.println("Officer: " + (loan.getOfficer() != null ? loan.getOfficer().getName() : "null"));
+        System.out.println("-------------------");
+    }
+
+    /**
+     * Handles the refresh button action
+     */
     @FXML
     private void handleRefresh() {
-        try {
-            DatabaseConfig.closeConnection(); // Force new connection
-            DatabaseConfig.ensureConnection();
-            loadData(); // Reuse existing load data method
-        } catch (Exception e) {
-            AlertUtils.showError("Refresh Error", "Failed to refresh data: " + e.getMessage());
-        }
+        Task<Void> refreshTask = new Task<>() {
+            @Override
+            protected Void call() throws Exception {
+                loadData();
+                return null;
+            }
+        };
+
+        refreshTask.setOnFailed(event -> {
+            Platform.runLater(() -> {
+                AlertUtils.showError("Refresh Error",
+                        "Failed to refresh data: " + refreshTask.getException().getMessage());
+            });
+        });
+
+        new Thread(refreshTask).start();
     }
 
+    /**
+     * Public method to refresh the table
+     */
     public void refreshTable() {
         handleRefresh();
     }
 
+    /**
+     * Handles the export button action
+     */
     @FXML
     private void handleExport() {
         FileChooser fileChooser = new FileChooser();
@@ -187,6 +280,9 @@ public class LoanTableController implements Initializable {
         }
     }
 
+    /**
+     * Handles the import button action
+     */
     @FXML
     private void handleImport() {
         FileChooser fileChooser = new FileChooser();
@@ -198,17 +294,13 @@ public class LoanTableController implements Initializable {
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                // Skip header
-                reader.readLine();
-
+                reader.readLine(); // Skip header
                 String line;
                 while ((line = reader.readLine()) != null) {
                     String[] data = line.split(",");
-                    // Process and import data
-                    // Implementation depends on your data format
+                    // TODO: Implement import logic
                 }
-
-                loadData(); // Refresh table
+                loadData();
                 AlertUtils.showInfo("Success", "Data imported successfully!");
             } catch (Exception e) {
                 AlertUtils.showError("Import Error", "Error importing data: " + e.getMessage());
@@ -218,6 +310,7 @@ public class LoanTableController implements Initializable {
 
     /**
      * Gets the selected loan ID
+     * @return The selected loan ID or null if nothing is selected
      */
     public String getSelectedLoanId() {
         Loan selectedLoan = loanTable.getSelectionModel().getSelectedItem();
@@ -237,5 +330,12 @@ public class LoanTableController implements Initializable {
                 setText(currencyFormat.format(item));
             }
         }
+    }
+
+    /**
+     * Sets the main controller reference
+     */
+    public void setMainController(MainController controller) {
+        this.mainController = controller;
     }
 }
