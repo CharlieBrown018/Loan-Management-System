@@ -58,15 +58,15 @@
         <!-- Print Options -->
         <HBox spacing="8" alignment="CENTER">
             <Button fx:id="printSummaryBtn"
-                    text="Print Summary"
-                    styleClass="button, secondary-button"
+                    text="Print Loan Agreement"
+                    styleClass="primary-button"
                     onAction="#handlePrintSummary"
                     maxWidth="Infinity"
                     HBox.hgrow="ALWAYS"/>
 
             <Button fx:id="exportPdfBtn"
-                    text="Export PDF"
-                    styleClass="button, primary-button"
+                    text="Export Bank Document"
+                    styleClass="secondary-button"
                     onAction="#handleExportPdf"
                     maxWidth="Infinity"
                     HBox.hgrow="ALWAYS"/>

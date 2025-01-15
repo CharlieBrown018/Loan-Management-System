@@ -5,6 +5,7 @@ import com.bankit.loan.service.LoanService;
 import com.bankit.loan.service.ServiceFactory;
 import com.bankit.loan.util.AlertUtils;
 import com.bankit.loan.util.DateUtils;
+import com.bankit.loan.util.DocumentGenerator;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
@@ -12,6 +13,7 @@ import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 import javafx.stage.FileChooser;
 
+import java.awt.*;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -22,6 +24,10 @@ import java.util.ResourceBundle;
 /**
  * Controller for the loan calculator section
  */
+/**
+ * Controller for the loan calculator section
+ * Handles calculations and document generation
+ */
 public class LoanCalculatorController implements Initializable {
 
     @FXML private TextField monthlyPaymentField;
@@ -30,6 +36,8 @@ public class LoanCalculatorController implements Initializable {
     @FXML private Button printSummaryBtn;
     @FXML private Button exportPdfBtn;
 
+    private MainController mainController;
+    private LoanFormController formController;
     private LoanService loanService;
     private NumberFormat currencyFormat;
     private double[] currentCalculations;
@@ -41,22 +49,24 @@ public class LoanCalculatorController implements Initializable {
         setupTextFields();
     }
 
+    public void setMainController(MainController controller) {
+        this.mainController = controller;
+    }
+
+    public void setFormController(LoanFormController controller) {
+        this.formController = controller;
+    }
+
     private void setupTextFields() {
-        // Set currency format for result fields
         monthlyPaymentField.setText(currencyFormat.format(0.0));
         totalPaymentField.setText(currencyFormat.format(0.0));
     }
 
-    /**
-     * Calculates loan payments based on form data
-     */
     public void calculate(double principal, double interestRate, int termMonths) {
         try {
             currentCalculations = loanService.calculateLoanPayments(principal, interestRate, termMonths);
-
             monthlyPaymentField.setText(currencyFormat.format(currentCalculations[0]));
             totalPaymentField.setText(currencyFormat.format(currentCalculations[1]));
-
             updateSummary(principal, interestRate, termMonths);
         } catch (Exception e) {
             AlertUtils.showError("Calculation Error", e.getMessage());
@@ -82,60 +92,91 @@ public class LoanCalculatorController implements Initializable {
     @FXML
     private void handlePrintSummary() {
         try {
-            // Create print job
-            javafx.print.PrinterJob job = javafx.print.PrinterJob.createPrinterJob();
+            Loan loan = formController.getLoanData();
+            if (loan == null) return;
 
-            if (job != null && job.showPrintDialog(null)) {
-                boolean printed = job.printPage(summaryArea);
-                if (printed) {
-                    job.endJob();
-                    AlertUtils.showInfo("Success", "Summary printed successfully!");
-                } else {
-                    AlertUtils.showError("Print Error", "Printing failed");
+            // Ensure calculations are done before printing
+            calculate(loan.getLoanAmount(), loan.getInterestRate(), loan.getTermMonths());
+            loan.setMonthlyPayment(currentCalculations[0]);
+            loan.setTotalPayment(currentCalculations[1]);
+
+            // Generate standardized filename
+            String timestamp = DateUtils.getCurrentDate().replaceAll("[^0-9]", "");
+            String filename = String.format("LOAN_AGREEMENT_%s_%s_%s.pdf",
+                    loan.getLoanId(),
+                    loan.getCustomerName().replaceAll("\\s+", "_"),
+                    timestamp);
+
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Loan Agreement");
+            fileChooser.setInitialFileName(filename);
+            fileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("PDF Files", "*.pdf")
+            );
+
+            File file = fileChooser.showSaveDialog(null);
+            if (file != null) {
+                DocumentGenerator.generateCustomerLoanDocument(loan, file);
+                AlertUtils.showInfo("Success", "Loan agreement generated successfully!");
+
+                // Optionally open the generated PDF
+                if (Desktop.isDesktopSupported()) {
+                    Desktop.getDesktop().open(file);
                 }
             }
         } catch (Exception e) {
-            AlertUtils.showError("Print Error", "Error printing summary: " + e.getMessage());
+            AlertUtils.showError("Document Generation Error", e.getMessage());
         }
     }
 
     @FXML
     private void handleExportPdf() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Export PDF");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Text Files", "*.txt")
-        );
+        try {
+            Loan loan = formController.getLoanData();
+            if (loan == null) return;
 
-        File file = fileChooser.showSaveDialog(null);
-        if (file != null) {
-            try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-                writer.print(summaryArea.getText());
-                AlertUtils.showInfo("Success", "Summary exported successfully!");
-            } catch (Exception e) {
-                AlertUtils.showError("Export Error", "Error exporting summary: " + e.getMessage());
+            // Ensure calculations are done before printing
+            calculate(loan.getLoanAmount(), loan.getInterestRate(), loan.getTermMonths());
+            loan.setMonthlyPayment(currentCalculations[0]);
+            loan.setTotalPayment(currentCalculations[1]);
+
+            // Generate standardized filename for internal document
+            String timestamp = DateUtils.getCurrentDate().replaceAll("[^0-9]", "");
+            String filename = String.format("INTERNAL_LOAN_DOC_%s_%s_%s.pdf",
+                    loan.getLoanId(),
+                    loan.getOfficer().getOfficerId(),
+                    timestamp);
+
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Save Internal Loan Document");
+            fileChooser.setInitialFileName(filename);
+            fileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("PDF Files", "*.pdf")
+            );
+
+            File file = fileChooser.showSaveDialog(null);
+            if (file != null) {
+                DocumentGenerator.generateBankLoanDocument(loan, file);
+                AlertUtils.showInfo("Success", "Internal document generated successfully!");
+
+                // Optionally open the generated PDF
+                if (Desktop.isDesktopSupported()) {
+                    Desktop.getDesktop().open(file);
+                }
             }
+        } catch (Exception e) {
+            AlertUtils.showError("Document Generation Error", e.getMessage());
         }
     }
 
-    /**
-     * Gets the current calculations
-     * @return array containing [monthlyPayment, totalPayment]
-     */
     public double[] getCalculations() {
         return currentCalculations;
     }
 
-    /**
-     * Sets the calculator data from a loan object
-     */
     public void setLoanData(Loan loan) {
         calculate(loan.getLoanAmount(), loan.getInterestRate(), loan.getTermMonths());
     }
 
-    /**
-     * Resets the calculator
-     */
     public void reset() {
         monthlyPaymentField.setText(currencyFormat.format(0.0));
         totalPaymentField.setText(currencyFormat.format(0.0));

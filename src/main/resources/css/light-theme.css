@@ -137,6 +137,12 @@
     -fx-effect: -fx-shadow-sm;
 }
 
+.text-field:readonly {
+    -fx-opacity: 0.7;
+    -fx-background-color: -fx-background;
+    -fx-cursor: default;
+}
+
 .text-field:disabled {
     -fx-opacity: 0.7;
     -fx-background-color: -fx-background;
@@ -239,6 +245,11 @@
     -fx-border-radius: 8px;
     -fx-background-radius: 8px;
     -fx-effect: -fx-shadow-md;
+}
+
+.combo-box:disabled {
+    -fx-opacity: 0.7;
+    -fx-cursor: default;
 }
 
 /* Table styles */

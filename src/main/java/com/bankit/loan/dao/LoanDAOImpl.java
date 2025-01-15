@@ -43,19 +43,37 @@ public class LoanDAOImpl implements LoanDAO {
     @Override
     public void update(Loan loan) throws SQLException {
         String sql = """
-            UPDATE loans SET 
-                customer_id = ?, customer_name = ?, contact = ?, email = ?, 
-                address = ?, account_type = ?, loan_amount = ?, interest_rate = ?, 
-                term_months = ?, issue_date = ?, due_date = ?, monthly_payment = ?, 
-                total_payment = ?, officer_id = ?
-            WHERE loan_id = ?
-        """;
+        UPDATE loans SET 
+            customer_id = ?, 
+            customer_name = ?, 
+            contact = ?, 
+            email = ?, 
+            address = ?, 
+            account_type = ?, 
+            loan_amount = ?, 
+            interest_rate = ?, 
+            term_months = ?,
+            monthly_payment = ?,
+            total_payment = ?
+        WHERE loan_id = ?
+    """;
 
         try (Connection conn = DatabaseConfig.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            setLoanParameters(pstmt, loan);
-            pstmt.setString(15, loan.getLoanId());
+            // Only update mutable fields
+            pstmt.setString(1, loan.getCustomerId());
+            pstmt.setString(2, loan.getCustomerName());
+            pstmt.setString(3, loan.getContact());
+            pstmt.setString(4, loan.getEmail());
+            pstmt.setString(5, loan.getAddress());
+            pstmt.setString(6, loan.getAccountType().name());
+            pstmt.setDouble(7, loan.getLoanAmount());
+            pstmt.setDouble(8, loan.getInterestRate());
+            pstmt.setInt(9, loan.getTermMonths());
+            pstmt.setDouble(10, loan.getMonthlyPayment());
+            pstmt.setDouble(11, loan.getTotalPayment());
+            pstmt.setString(12, loan.getLoanId());
 
             if (pstmt.executeUpdate() == 0) {
                 throw new SQLException("Update failed, no rows affected.");

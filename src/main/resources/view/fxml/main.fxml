@@ -76,7 +76,8 @@
 
                     <Button fx:id="updateBtn"
                             text="Update"
-                            styleClass="button, secondary-button"
+                            styleClass="primary-button"
+                            disable="true"
                             onAction="#handleUpdate"
                             maxWidth="Infinity"
                             GridPane.columnIndex="2"

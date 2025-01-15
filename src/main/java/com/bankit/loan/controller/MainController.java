@@ -25,6 +25,7 @@ public class MainController implements Initializable {
     @FXML private Button updateBtn;
     @FXML private Button deleteBtn;
     @FXML private Button resetBtn;
+    private boolean editMode = false;
 
     private LoanService loanService;
     private LoanFormController formController;
@@ -164,6 +165,9 @@ public class MainController implements Initializable {
         }
     }
 
+    /**
+     * Handles form reset and mode switching
+     */
     @FXML
     private void handleReset() {
         if (formController != null) {
@@ -172,8 +176,29 @@ public class MainController implements Initializable {
         if (calculatorController != null) {
             calculatorController.reset();
         }
-        updateBtn.setDisable(true);
-        deleteBtn.setDisable(true);
+        toggleEditMode(false);
+
+        // Clear table selection without triggering events
+        if (tableController != null) {
+            tableController.clearSelection();
+        }
+    }
+
+    /**
+     * Toggles between edit and create modes
+     * @param isEdit true for edit mode, false for create mode
+     */
+    public void toggleEditMode(boolean isEdit) {
+        editMode = isEdit;
+        saveBtn.setDisable(isEdit);
+        updateBtn.setDisable(!isEdit);
+
+        // Visual feedback for current mode
+        if (isEdit) {
+            headerLabel.setText("Edit Loan Record");
+        } else {
+            headerLabel.setText("Create New Loan");
+        }
     }
 
     /**
@@ -189,20 +214,29 @@ public class MainController implements Initializable {
         if (calculatorController != null) {
             calculatorController.setLoanData(loan);
         }
-        updateBtn.setDisable(false);
-        deleteBtn.setDisable(false);
+        toggleEditMode(true);
     }
 
     // Setter methods for child controllers
+    public void setTableController(LoanTableController controller) {
+        this.tableController = controller;
+        if (controller != null) {
+            controller.setMainController(this);
+        }
+    }
+
     public void setFormController(LoanFormController controller) {
         this.formController = controller;
+        if (controller != null) {
+            controller.setMainController(this);
+        }
     }
 
     public void setCalculatorController(LoanCalculatorController controller) {
         this.calculatorController = controller;
-    }
-
-    public void setTableController(LoanTableController controller) {
-        this.tableController = controller;
+        if (controller != null) {
+            controller.setMainController(this);
+            controller.setFormController(formController);
+        }
     }
 }

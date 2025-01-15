@@ -1,7 +1,9 @@
 package com.bankit.loan.controller;
 
 import com.bankit.loan.config.DatabaseConfig;
+import com.bankit.loan.model.AccountType;
 import com.bankit.loan.model.Loan;
+import com.bankit.loan.model.Officer;
 import com.bankit.loan.service.LoanService;
 import com.bankit.loan.service.ServiceFactory;
 import com.bankit.loan.util.AlertUtils;
@@ -14,23 +16,26 @@ import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.control.Button;
+import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import javafx.beans.property.SimpleStringProperty;
 
+import java.awt.*;
 import java.io.*;
 import java.net.URL;
 import java.text.NumberFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.ResourceBundle;
 
 /**
- * Controller for the loan table section.
- * Handles the display and management of loan records in a table format.
+ * Controller for the loan table section
+ * Handles display and management of loan records in table format
  */
 public class LoanTableController implements Initializable {
 
-    // FXML Injected Controls
     @FXML private TextField searchField;
     @FXML private Button exportBtn;
     @FXML private Button importBtn;
@@ -51,7 +56,6 @@ public class LoanTableController implements Initializable {
     @FXML private TableColumn<Loan, String> issueDateColumn;
     @FXML private TableColumn<Loan, String> officerNameColumn;
 
-    // Controller State
     private LoanService loanService;
     private ObservableList<Loan> loans;
     private FilteredList<Loan> filteredLoans;
@@ -62,17 +66,21 @@ public class LoanTableController implements Initializable {
     public void initialize(URL url, ResourceBundle rb) {
         loanService = ServiceFactory.getInstance().getLoanService();
         currencyFormat = NumberFormat.getCurrencyInstance();
-
         setupTableColumns();
         setupSearchField();
-
-        // Load data asynchronously to prevent UI freezing
         Platform.runLater(this::loadData);
     }
 
-    /**
-     * Sets up all table columns with appropriate cell factories and value factories
-     */
+    private void setupSearchField() {
+        searchField.textProperty().addListener((obs, oldValue, newValue) -> {
+            String searchText = newValue.toLowerCase();
+            filteredLoans.setPredicate(loan ->
+                    loan.getCustomerName().toLowerCase().contains(searchText) ||
+                            loan.getLoanId().toLowerCase().contains(searchText)
+            );
+        });
+    }
+
     private void setupTableColumns() {
         // Basic text columns
         loanIdColumn.setCellValueFactory(new PropertyValueFactory<>("loanId"));
@@ -89,12 +97,12 @@ public class LoanTableController implements Initializable {
         monthlyPaymentColumn.setCellValueFactory(new PropertyValueFactory<>("monthlyPayment"));
         totalPaymentColumn.setCellValueFactory(new PropertyValueFactory<>("totalPayment"));
 
-        // Currency formatting for monetary values
+        // Currency formatting
         loanAmountColumn.setCellFactory(col -> new CurrencyTableCell());
         monthlyPaymentColumn.setCellFactory(col -> new CurrencyTableCell());
         totalPaymentColumn.setCellFactory(col -> new CurrencyTableCell());
 
-        // Percentage formatting for interest rate
+        // Interest rate formatting
         interestRateColumn.setCellFactory(col -> new TableCell<>() {
             @Override
             protected void updateItem(Double item, boolean empty) {
@@ -107,9 +115,10 @@ public class LoanTableController implements Initializable {
             }
         });
 
-        // Date formatting for issue date
+        // Date formatting
         issueDateColumn.setCellValueFactory(cellData ->
-                new SimpleStringProperty(DateUtils.formatDateForDisplay(cellData.getValue().getIssueDate())));
+                new SimpleStringProperty(DateUtils.formatDateForDisplay(cellData.getValue().getIssueDate()))
+        );
 
         // Officer name handling
         officerNameColumn.setCellValueFactory(cellData -> {
@@ -123,41 +132,14 @@ public class LoanTableController implements Initializable {
         // Row selection handler
         loanTable.getSelectionModel().selectedItemProperty().addListener(
                 (obs, oldSelection, newSelection) -> {
-                    if (newSelection != null) {
+                    if (newSelection != null && mainController != null) {
                         mainController.onLoanSelected(newSelection);
+                        mainController.toggleEditMode(true);
                     }
                 }
         );
-
-        // Add debug row factory
-        loanTable.setRowFactory(tv -> {
-            TableRow<Loan> row = new TableRow<>();
-            row.setOnMouseClicked(event -> {
-                if (!row.isEmpty()) {
-                    Loan loan = row.getItem();
-                    debugPrintLoan(loan);
-                }
-            });
-            return row;
-        });
     }
 
-    /**
-     * Sets up the search functionality
-     */
-    private void setupSearchField() {
-        searchField.textProperty().addListener((obs, oldValue, newValue) -> {
-            String searchText = newValue.toLowerCase();
-            filteredLoans.setPredicate(loan ->
-                    loan.getCustomerName().toLowerCase().contains(searchText) ||
-                            loan.getLoanId().toLowerCase().contains(searchText)
-            );
-        });
-    }
-
-    /**
-     * Loads loan data asynchronously
-     */
     private void loadData() {
         Task<List<Loan>> loadTask = new Task<>() {
             @Override
@@ -174,12 +156,7 @@ public class LoanTableController implements Initializable {
                     filteredLoans = new FilteredList<>(loans);
                     loanTable.setItems(filteredLoans);
                     loanTable.refresh();
-
-                    // Debug output
-                    System.out.println("Successfully loaded " + loanList.size() + " loans");
-                    loanList.forEach(this::debugPrintLoan);
                 } catch (Exception e) {
-                    e.printStackTrace();
                     AlertUtils.showError("UI Update Error",
                             "Error updating table: " + e.getMessage());
                 }
@@ -187,36 +164,209 @@ public class LoanTableController implements Initializable {
         });
 
         loadTask.setOnFailed(event -> {
-            Throwable exception = loadTask.getException();
-            Platform.runLater(() -> {
-                AlertUtils.showError("Data Load Error",
-                        "Error loading loan data: " + exception.getMessage());
-            });
-            exception.printStackTrace();
+            AlertUtils.showError("Data Load Error",
+                    "Error loading loan data: " + loadTask.getException().getMessage());
         });
 
         new Thread(loadTask).start();
     }
 
     /**
-     * Debug method to print loan details
+     * Handles the import button action with validation and error handling
      */
-    private void debugPrintLoan(Loan loan) {
-        System.out.println("Loan Details:");
-        System.out.println("ID: " + loan.getLoanId());
-        System.out.println("Customer: " + loan.getCustomerName());
-        System.out.println("Amount: " + currencyFormat.format(loan.getLoanAmount()));
-        System.out.println("Interest: " + String.format("%.2f%%", loan.getInterestRate()));
-        System.out.println("Monthly Payment: " + currencyFormat.format(loan.getMonthlyPayment()));
-        System.out.println("Total Payment: " + currencyFormat.format(loan.getTotalPayment()));
-        System.out.println("Issue Date: " + loan.getIssueDate());
-        System.out.println("Officer: " + (loan.getOfficer() != null ? loan.getOfficer().getName() : "null"));
-        System.out.println("-------------------");
+    @FXML
+    private void handleImport() {
+        try {
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Import Loan Data");
+            fileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+            );
+
+            File file = fileChooser.showOpenDialog(null);
+            if (file != null) {
+                List<String> errorMessages = new ArrayList<>();
+                int successCount = 0;
+                int totalCount = 0;
+
+                try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+                    String header = reader.readLine(); // Skip header
+                    validateCSVHeader(header);
+
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        totalCount++;
+                        try {
+                            Loan loan = parseCSVLine(line);
+                            loanService.createLoan(loan);
+                            successCount++;
+                        } catch (Exception e) {
+                            errorMessages.add(String.format("Row %d: %s", totalCount, e.getMessage()));
+                        }
+                    }
+
+                    // Refresh table after import
+                    loadData();
+
+                    // Show results
+                    if (errorMessages.isEmpty()) {
+                        AlertUtils.showInfo("Import Success",
+                                String.format("Successfully imported %d loan records", successCount));
+                    } else {
+                        StringBuilder message = new StringBuilder();
+                        message.append(String.format("Imported %d of %d records successfully.\n\nErrors:\n",
+                                successCount, totalCount));
+                        errorMessages.forEach(err -> message.append("- ").append(err).append("\n"));
+                        AlertUtils.showWarning("Import Completed with Errors", message.toString());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            AlertUtils.showError("Import Error", "Failed to import data: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
-     * Handles the refresh button action
+     * Validates CSV header format
      */
+    private void validateCSVHeader(String header) {
+        String expectedHeader = "Loan ID,Customer ID,Customer Name,Contact,Email,Address," +
+                "Account Type,Loan Amount,Interest Rate,Term (Months)," +
+                "Issue Date,Due Date,Monthly Payment,Total Payment," +
+                "Officer ID,Officer Name,Officer Email";
+
+        if (!header.replaceAll("\\s+", "").equalsIgnoreCase(expectedHeader.replaceAll("\\s+", ""))) {
+            throw new IllegalArgumentException("Invalid CSV format. Please use the export format as template.");
+        }
+    }
+
+    /**
+     * Parses a CSV line into a Loan object
+     */
+    private Loan parseCSVLine(String line) throws Exception {
+        String[] fields = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)"); // Split considering quoted values
+        if (fields.length < 17) {
+            throw new IllegalArgumentException("Invalid number of fields in CSV line");
+        }
+
+        Loan loan = new Loan();
+        loan.setLoanId(fields[0].trim());
+        loan.setCustomerId(fields[1].trim());
+        loan.setCustomerName(unescapeCSV(fields[2]));
+        loan.setContact(fields[3].trim());
+        loan.setEmail(unescapeCSV(fields[4]));
+        loan.setAddress(unescapeCSV(fields[5]));
+        loan.setAccountType(AccountType.valueOf(fields[6].trim()));
+        loan.setLoanAmount(Double.parseDouble(fields[7].trim()));
+        loan.setInterestRate(Double.parseDouble(fields[8].trim()));
+        loan.setTermMonths(Integer.parseInt(fields[9].trim()));
+        loan.setIssueDate(DateUtils.parseDate(fields[10].trim()));
+        loan.setDueDate(DateUtils.parseDate(fields[11].trim()));
+        loan.setMonthlyPayment(Double.parseDouble(fields[12].trim()));
+        loan.setTotalPayment(Double.parseDouble(fields[13].trim()));
+
+        Officer officer = new Officer();
+        officer.setOfficerId(fields[14].trim());
+        officer.setName(unescapeCSV(fields[15]));
+        officer.setEmail(unescapeCSV(fields[16]));
+        // Default contact for imported officers if not available
+        officer.setContact("09000000000");
+        loan.setOfficer(officer);
+
+        return loan;
+    }
+
+    /**
+     * Unescapes CSV values
+     */
+    private String unescapeCSV(String value) {
+        if (value == null || value.isEmpty()) return "";
+        if (value.startsWith("\"") && value.endsWith("\"")) {
+            value = value.substring(1, value.length() - 1);
+        }
+        return value.replace("\"\"", "\"").trim();
+    }
+
+    @FXML
+    private void handleExport() {
+        try {
+            String timestamp = DateUtils.getCurrentDate().replaceAll("[^0-9]", "");
+            String filename = String.format("BankIT_Loans_Export_%s.csv", timestamp);
+
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Export Loan Data");
+            fileChooser.setInitialFileName(filename);
+            fileChooser.getExtensionFilters().add(
+                    new FileChooser.ExtensionFilter("CSV Files", "*.csv")
+            );
+
+            File file = fileChooser.showSaveDialog(null);
+            if (file != null) {
+                exportToCSV(file);
+                AlertUtils.showInfo("Success",
+                        String.format("Successfully exported %d loan records", loans.size()));
+            }
+        } catch (Exception e) {
+            AlertUtils.showError("Export Error", "Failed to export data: " + e.getMessage());
+        }
+    }
+
+    private void exportToCSV(File file) throws IOException {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
+            // Write header
+            writer.println("Loan ID,Customer ID,Customer Name,Contact,Email,Address," +
+                    "Account Type,Loan Amount,Interest Rate,Term (Months)," +
+                    "Issue Date,Due Date,Monthly Payment,Total Payment," +
+                    "Officer ID,Officer Name,Officer Email");
+
+            // Write data
+            for (Loan loan : loans) {
+                writer.printf("%s,%s,%s,%s,%s,%s,%s,%.2f,%.2f,%d,%s,%s,%.2f,%.2f,%s,%s,%s%n",
+                        escapeCSV(loan.getLoanId()),
+                        escapeCSV(loan.getCustomerId()),
+                        escapeCSV(loan.getCustomerName()),
+                        escapeCSV(loan.getContact()),
+                        escapeCSV(loan.getEmail()),
+                        escapeCSV(loan.getAddress()),
+                        loan.getAccountType(),
+                        loan.getLoanAmount(),
+                        loan.getInterestRate(),
+                        loan.getTermMonths(),
+                        loan.getIssueDate(),
+                        loan.getDueDate(),
+                        loan.getMonthlyPayment(),
+                        loan.getTotalPayment(),
+                        escapeCSV(loan.getOfficer().getOfficerId()),
+                        escapeCSV(loan.getOfficer().getName()),
+                        escapeCSV(loan.getOfficer().getEmail())
+                );
+            }
+        }
+
+        // Optionally open the generated csv file
+        if (Desktop.isDesktopSupported()) {
+            Desktop.getDesktop().open(file);
+        }
+    }
+
+    private String escapeCSV(String value) {
+        if (value == null) return "";
+        value = value.replace("\"", "\"\"");
+        if (value.contains(",") || value.contains("\"") || value.contains("\n")) {
+            value = "\"" + value + "\"";
+        }
+        return value;
+    }
+
+    public void setMainController(MainController controller) {
+        this.mainController = controller;
+    }
+
+    public void clearSelection() {
+        loanTable.getSelectionModel().clearSelection();
+    }
+
     @FXML
     private void handleRefresh() {
         Task<Void> refreshTask = new Task<>() {
@@ -237,89 +387,15 @@ public class LoanTableController implements Initializable {
         new Thread(refreshTask).start();
     }
 
-    /**
-     * Public method to refresh the table
-     */
     public void refreshTable() {
-        handleRefresh();
+        loadData();
     }
 
-    /**
-     * Handles the export button action
-     */
-    @FXML
-    private void handleExport() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Export Data");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("CSV Files", "*.csv")
-        );
-
-        File file = fileChooser.showSaveDialog(null);
-        if (file != null) {
-            try (PrintWriter writer = new PrintWriter(new FileWriter(file))) {
-                // Write header
-                writer.println("Loan ID,Customer Name,Loan Amount,Interest Rate,Term,Monthly Payment,Total Payment");
-
-                // Write data
-                for (Loan loan : loans) {
-                    writer.printf("%s,%s,%.2f,%.2f,%d,%.2f,%.2f%n",
-                            loan.getLoanId(),
-                            loan.getCustomerName(),
-                            loan.getLoanAmount(),
-                            loan.getInterestRate(),
-                            loan.getTermMonths(),
-                            loan.getMonthlyPayment(),
-                            loan.getTotalPayment()
-                    );
-                }
-                AlertUtils.showInfo("Success", "Data exported successfully!");
-            } catch (Exception e) {
-                AlertUtils.showError("Export Error", "Error exporting data: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Handles the import button action
-     */
-    @FXML
-    private void handleImport() {
-        FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Import Data");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("CSV Files", "*.csv")
-        );
-
-        File file = fileChooser.showOpenDialog(null);
-        if (file != null) {
-            try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
-                reader.readLine(); // Skip header
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    String[] data = line.split(",");
-                    // TODO: Implement import logic
-                }
-                loadData();
-                AlertUtils.showInfo("Success", "Data imported successfully!");
-            } catch (Exception e) {
-                AlertUtils.showError("Import Error", "Error importing data: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Gets the selected loan ID
-     * @return The selected loan ID or null if nothing is selected
-     */
     public String getSelectedLoanId() {
         Loan selectedLoan = loanTable.getSelectionModel().getSelectedItem();
         return selectedLoan != null ? selectedLoan.getLoanId() : null;
     }
 
-    /**
-     * Custom TableCell for currency formatting
-     */
     private class CurrencyTableCell extends TableCell<Loan, Double> {
         @Override
         protected void updateItem(Double item, boolean empty) {
@@ -330,12 +406,5 @@ public class LoanTableController implements Initializable {
                 setText(currencyFormat.format(item));
             }
         }
-    }
-
-    /**
-     * Sets the main controller reference
-     */
-    public void setMainController(MainController controller) {
-        this.mainController = controller;
     }
 }

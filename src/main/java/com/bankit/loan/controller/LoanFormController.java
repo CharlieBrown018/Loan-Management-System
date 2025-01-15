@@ -16,6 +16,7 @@ import javafx.util.StringConverter;
 import java.net.URL;
 import java.sql.SQLException;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
 import java.util.regex.Pattern;
@@ -39,6 +40,7 @@ public class LoanFormController implements Initializable {
     @FXML private TextField officerEmailField;
     @FXML private TextField officerContactField;
 
+    private MainController mainController;
     private OfficerService officerService;
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[A-Za-z0-9+_.-]+@(.+)$");
     private static final Pattern PHONE_PATTERN = Pattern.compile("^09\\d{9}$");
@@ -50,6 +52,10 @@ public class LoanFormController implements Initializable {
         setupInitialValues();
         officerService = ServiceFactory.getInstance().getOfficerService();
         setupOfficerComboBox();
+    }
+
+    public void setMainController(MainController controller) {
+        this.mainController = controller;
     }
 
     private void setupTextFormatters() {
@@ -276,7 +282,14 @@ public class LoanFormController implements Initializable {
         }
     }
 
+    /**
+     * Populates form fields with loan data
+     * @param loan The loan data to populate
+     */
     public void setLoanData(Loan loan) {
+        if (loan == null) return;
+
+        // Populate main loan details
         customerIdField.setText(loan.getCustomerId());
         fullNameField.setText(loan.getCustomerName());
         contactField.setText(loan.getContact());
@@ -289,12 +302,19 @@ public class LoanFormController implements Initializable {
         termMonthsField.setText(String.valueOf(loan.getTermMonths()));
         issueDateField.setText(DateUtils.formatDate(loan.getIssueDate()));
 
+        // Populate officer details and make them read-only
         Officer officer = loan.getOfficer();
         if (officer != null) {
             officerIdField.setText(officer.getOfficerId());
             officerNameComboBox.setValue(officer);
             officerEmailField.setText(officer.getEmail());
             officerContactField.setText(officer.getContact());
+
+            // Make officer fields read-only
+            officerIdField.setEditable(false);
+            officerNameComboBox.setDisable(true);
+            officerEmailField.setEditable(false);
+            officerContactField.setEditable(false);
         }
     }
 
@@ -315,5 +335,37 @@ public class LoanFormController implements Initializable {
         officerNameComboBox.getEditor().clear();
         officerEmailField.clear();
         officerContactField.clear();
+
+        // Re-enable officer fields
+        officerIdField.setEditable(true);
+        officerNameComboBox.setDisable(false);
+        officerEmailField.setEditable(true);
+        officerContactField.setEditable(true);
+
+        // Reset any validation styling
+        clearValidationStyles();
+    }
+
+    /**
+     * Clears any validation-related styling from form fields
+     */
+    private void clearValidationStyles() {
+        // Get all text fields in the form
+        List<TextField> fields = Arrays.asList(
+                customerIdField, fullNameField, contactField, emailField,
+                addressField, loanIdField, loanAmountField, interestRateField,
+                termMonthsField, officerIdField, officerEmailField, officerContactField
+        );
+
+        // Clear any error styles
+        fields.forEach(field -> {
+            field.setStyle("");
+            field.setTooltip(null);
+        });
+
+        accountTypeCombo.setStyle("");
+        accountTypeCombo.setTooltip(null);
+        officerNameComboBox.setStyle("");
+        officerNameComboBox.setTooltip(null);
     }
 }

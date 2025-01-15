@@ -51,6 +51,24 @@ public class App extends Application {
                     (LoanTableController) loader.getNamespace().get("loanTableController")
             );
 
+            // Get child controllers from the FXML namespace
+            LoanFormController formController =
+                    (LoanFormController) loader.getNamespace().get("loanFormController");
+            LoanCalculatorController calculatorController =
+                    (LoanCalculatorController) loader.getNamespace().get("loanCalculatorController");
+            LoanTableController tableController =
+                    (LoanTableController) loader.getNamespace().get("loanTableController");
+
+            // Set up controller relationships
+            if (formController == null || calculatorController == null || tableController == null) {
+                throw new RuntimeException("Failed to load all required controllers");
+            }
+
+            // Initialize controllers with bidirectional references
+            mainController.setFormController(formController);
+            mainController.setCalculatorController(calculatorController);
+            mainController.setTableController(tableController);
+
             Scene scene = new Scene(root);
 
             // Add stylesheet with correct path
@@ -63,8 +81,8 @@ public class App extends Application {
             // Configure stage
             primaryStage.setWidth(1024);
             primaryStage.setHeight(768);
-            primaryStage.setMinWidth(800);
-            primaryStage.setMinHeight(600);
+            primaryStage.setMinWidth(900);
+            primaryStage.setMinHeight(1000);
             primaryStage.setScene(scene);
             primaryStage.show();
 
