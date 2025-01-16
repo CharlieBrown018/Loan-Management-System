@@ -132,20 +132,20 @@ mvn javafx:run
 
 ## Usage Guide
 1. Creating a New Loan:
-  1. Fill in Customer Information fields
-  2. Generate a Loan ID
-  3. Complete Loan Information
-  4. Select or create Officer Information
-  5. Click Calculate then Save
+- Fill in Customer Information fields
+- Generate a Loan ID
+- Complete Loan Information
+- Select or create Officer Information
+- Click Calculate then Save
 2. Editing Existing Loans:
-  1. Select loan record from table
-  2. Modify desired fields
-  3. Click Update to save changes
+- Select loan record from table
+- Modify desired fields
+- Click Update to save changes
 3. Document Generation:
-  1. Select loan record
-  2. Click "Print Loan Agreement" for customer copy
-  3. Click "Export Bank Document" for internal copy
+- Select loan record
+- Click "Print Loan Agreement" for customer copy
+- Click "Export Bank Document" for internal copy
 4. Data Export/Import:
-  1. Use Export button for CSV export
-  2. Use Import button to load CSV data
-  3. Use Refresh to update table view
+- Use Export button for CSV export
+- Use Import button to load CSV data
+- Use Refresh to update table view
