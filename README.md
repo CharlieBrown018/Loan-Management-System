@@ -4,6 +4,27 @@ A robust Java-based desktop application for managing loan operations, built with
 
 ![BankIT Main Interface](screenshots/create_new_loan.png)
 
+## Contents
+- [Features](#features)
+  - [Loan Management](#1-loan-management)
+  - [Officer Management](#2-officer-management)
+  - [Document Generation](#3-document-generation)
+  - [Data Management](#4-data-management)
+  - [User Interface](#5-user-interface)
+- [Technology Stack](#technology-stack)
+- [Architecture & Design Patterns](#architecture--design-patterns)
+  - [Architecture](#architecture)
+  - [Project Structure](#project-structure)
+- [Design Patterns](#design-patterns)
+  - [Singleton Pattern](#singleton-pattern)
+  - [Factory Pattern](#factory-pattern)
+  - [Builder Pattern](#builder-pattern)
+  - [Observer Pattern](#observer-pattern)
+- [Installation](#installation)
+  - [Prerequisites](#prerequisites)
+  - [Setup Steps](#setup-steps)
+- [Usage Guide](#usage-guide)
+
 ## Features
 
 ### 1. Loan Management
