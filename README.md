@@ -40,12 +40,13 @@ A robust Java-based desktop application for managing loan operations, built with
 
 ## Technology Stack
 
-- Java 17
+- Java 18
 - JavaFX 21.0.2
 - SQLite 3.44.1
 - PDFBox 2.0.27
 - Maven
 - CSS3
+- Apache PDFBox
 
 ## Architecture & Design Patterns
 
@@ -148,10 +149,3 @@ mvn javafx:run
   1. Use Export button for CSV export
   2. Use Import button to load CSV data
   3. Use Refresh to update table view
-
-## Development Notes
-- Branch: javaFX
-- Database: SQLite with JDBC
-- UI Framework: JavaFX 21.0.2
-- Build Tool: Maven
-- PDF Generation: Apache PDFBox
